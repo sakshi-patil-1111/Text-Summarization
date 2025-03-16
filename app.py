@@ -1,17 +1,37 @@
 import re
+import nltk
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords
+
+# Download necessary NLTK data
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
 
 
 def clean_text(text):
-    text = re.sub(r'\[[0-9]*\]', ' ', text) # Remove references
-    text = re.sub(r'\s+', ' ', text) # Remove multiple spaces
+    text = re.sub(r'\[[0-9]*\]', ' ', text)  # Remove references
+    text = re.sub(r'\s+', ' ', text)  # Remove multiple spaces
     return text
-
 
 def remove_special_chars(text):
     formatted_text = re.sub('[^a-zA-Z]', ' ', text)  # Remove special characters and digits
-    formatted_text = re.sub(r'\s+', ' ', formatted_text)  # Remove extra spaces
+    formatted_text = re.sub(r'\s+', ' ', formatted_text) # Remove extra spaces
     return formatted_text
 
+
+def tokenize_sentences(text):
+    return sent_tokenize(text)
+
+
+def tokenize_words(text):
+    return word_tokenize(text)
+
+
+def remove_stopwords(words):
+    stop_words = set(stopwords.words('english'))
+    filtered_words = [word for word in words if word.lower() not in stop_words]
+    return filtered_words
 
 def main():
     text = """Natural Language Processing (NLP) is a field of artificial intelligence that enables computers to understand, 
@@ -37,15 +57,25 @@ def main():
     and efficiently. NLP advancements will continue to improve summarization models, making them more accurate, 
     context-aware, and widely applicable."""
     
-    # print("Original Text:")
-    # print(text)
-
+    
     cleaned_text = clean_text(text)
     formatted_article_text = remove_special_chars(cleaned_text)
 
+    print("Cleaned Text (First 500 characters):")
     print(cleaned_text[:500]) 
-    print(formatted_article_text[:500]) 
+    print("\nFormatted Article Text (First 500 characters):")
+    print(formatted_article_text[:500])
 
+    sentences = tokenize_sentences(cleaned_text)
+    words = tokenize_words(formatted_article_text)
+
+    filtered_words = remove_stopwords(words)
+
+    print("\nFirst 5 Sentences:")
+    print(sentences[:5])  
+    
+    print("\nFirst 20 Words after Stopword Removal:")
+    print(filtered_words[:20]) 
 
 
 if __name__ == "__main__":
