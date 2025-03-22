@@ -1,0 +1,4 @@
+This is Sample text file.
+Text summarization is the process of creating a concise, accurate representation of a longer text, 
+extracting the most important information while preserving its meaning. 
+It's a valuable tool for quickly understanding large amounts of text and is used in various applications, including news articles, research papers, and legal documents.
