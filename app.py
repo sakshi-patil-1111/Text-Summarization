@@ -1,22 +1,27 @@
 import re
+import pdfplumber
 import nltk
+import string
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
+from collections import defaultdict
+import os
+import heapq
 
-# Download necessary NLTK data
+
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('punkt_tab')
 
 
 def clean_text(text):
-    text = re.sub(r'\[[0-9]*\]', ' ', text)  # Remove references
-    text = re.sub(r'\s+', ' ', text)  # Remove multiple spaces
+    text = re.sub(r'\[[0-9]*\]', ' ', text) 
+    text = re.sub(r'\s+', ' ', text) 
     return text
 
 def remove_special_chars(text):
-    formatted_text = re.sub('[^a-zA-Z]', ' ', text)  # Remove special characters and digits
-    formatted_text = re.sub(r'\s+', ' ', formatted_text) # Remove extra spaces
+    formatted_text = re.sub('[^a-zA-Z]', ' ', text)  
+    formatted_text = re.sub(r'\s+', ' ', formatted_text)
     return formatted_text
 
 
@@ -33,31 +38,62 @@ def remove_stopwords(words):
     filtered_words = [word for word in words if word.lower() not in stop_words]
     return filtered_words
 
+
+def compute_word_frequencies(words):
+    word_frequencies = defaultdict(int)
+    for word in words:
+        word_frequencies[word] += 1
+    max_frequency = max(word_frequencies.values())
+
+    for word in word_frequencies:
+        word_frequencies[word] /= max_frequency  
+    return word_frequencies
+
+
+def score_sentences(sentences, word_frequencies):
+    sentence_scores = defaultdict(int)
+
+    for sent in sentences:
+        for word in word_tokenize(sent.lower()):
+            if word in word_frequencies:
+                if len(sent.split(' ')) < 30:  
+                    sentence_scores[sent] += word_frequencies[word]
+    return sentence_scores
+
+
+
+def get_summary(sentence_scores, n=7):
+    summary_sentences = heapq.nlargest(n, sentence_scores, key=sentence_scores.get)
+    summary = ' '.join(summary_sentences)
+    return summary
+
+
 def main():
-    text = """Natural Language Processing (NLP) is a field of artificial intelligence that enables computers to understand, 
-    interpret, and generate human language. NLP techniques are used in applications such as chatbots, sentiment analysis, 
-    machine translation, and text summarization. One of the key challenges in NLP is understanding context, ambiguity, and 
-    linguistic nuances. Various algorithms, including rule-based methods and deep learning models, are employed to process 
-    textual data efficiently. NLP continues to evolve with advancements in AI, making human-computer interaction more 
-    seamless and intelligent.
-
-    Text summarization is an important application of NLP that helps condense large amounts of textual information into 
-    shorter, meaningful summaries. It is widely used in news aggregation, research paper summarization, and document 
-    processing. Summarization techniques are broadly categorized into extractive and abstractive methods. Extractive 
-    summarization selects key sentences from the original text, while abstractive summarization generates new sentences 
-    that capture the main ideas.
-
-    Traditional text summarization methods rely on statistical techniques such as TF-IDF (Term Frequency-Inverse Document 
-    Frequency) and sentence ranking algorithms like TextRank. Modern approaches leverage deep learning and transformers, 
-    including models like BERT and GPT, which understand context and generate high-quality summaries. The effectiveness 
-    of summarization depends on the quality of the input text, preprocessing techniques, and the chosen model.
-
-    As the amount of digital information grows, the demand for automated summarization tools increases. Businesses, 
-    researchers, and content creators benefit from AI-powered summarization to extract essential information quickly 
-    and efficiently. NLP advancements will continue to improve summarization models, making them more accurate, 
-    context-aware, and widely applicable."""
     
+    text = """Artificial Intelligence (AI) is revolutionizing industries across the globe, transforming 
+    the way people work, communicate, and interact with technology. AI-powered systems are now used in healthcare
+    to diagnose diseases, in finance to detect fraud, and in autonomous vehicles to enhance road safety. Despite 
+    these advancements, AI also raises ethical concerns regarding data privacy, job displacement, and decision-making
+    biases.
     
+    One of the most significant benefits of AI is its ability to process large amounts of data efficiently. In the medical field, 
+    AI-driven algorithms can analyze patient records to detect diseases at an early stage, leading to better treatment outcomes. 
+    Similarly, AI is transforming the financial sector by identifying fraudulent transactions in real-time, reducing financial 
+    losses for businesses and individuals.
+    
+    However, the widespread adoption of AI has led to concerns about job automation. Many routine tasks, such as customer 
+    service and manufacturing operations, are increasingly being performed by AI-driven robots, leading to workforce displacement. 
+    While new job opportunities are emerging in AI development and maintenance, there is an urgent need for reskilling and upskilling 
+    programs to help workers transition to new roles.
+    
+    Another critical challenge is the ethical implications of AI decision-making. Machine learning models are trained on historical data,
+    which can contain biases. If not carefully managed, AI systems may reinforce these biases, leading to unfair treatment in areas such as
+    hiring and law enforcement. Ensuring transparency and accountability in AI algorithms is essential to mitigate these risks.
+    
+    In conclusion, while AI offers immense potential to improve efficiency and decision-making across various sectors, 
+    it is crucial to address its ethical and societal challenges. Governments, businesses, and researchers must work together
+    to develop regulations and policies that ensure AI is used responsibly and beneficially for all."""
+
     cleaned_text = clean_text(text)
     formatted_article_text = remove_special_chars(cleaned_text)
 
@@ -75,8 +111,14 @@ def main():
     print(sentences[:5])  
     
     print("\nFirst 20 Words after Stopword Removal:")
-    print(filtered_words[:20]) 
-
-
-if __name__ == "__main__":
-    main()
+    print(filtered_words[:20])
+    
+    word_frequencies = compute_word_frequencies(filtered_words)
+    print(dict(list(word_frequencies.items())[:20]))
+    
+    sentence_scores = score_sentences(sentences, word_frequencies)
+    print(dict(list(sentence_scores.items())[:5]))
+    
+    summary = get_summary(sentence_scores)
+    print("\nSummary:")
+    print(summary)
