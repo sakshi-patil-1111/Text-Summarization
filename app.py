@@ -1,13 +1,13 @@
 import re
-import pdfplumber
 import nltk
 import string
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from collections import defaultdict
-import os
 import heapq
 
+proxy = "http://edcguest:edcguest@172.31.102.29:3128"
+nltk.set_proxy(proxy)
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -122,3 +122,5 @@ def main():
     summary = get_summary(sentence_scores)
     print("\nSummary:")
     print(summary)
+
+main()
