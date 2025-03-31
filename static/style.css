@@ -1,0 +1,157 @@
+/* Global Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(45deg, #121212, #1e1e1e);
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align items to the top */
+    height: 100vh; /* Full viewport height */
+    padding: 20px;
+}
+
+/* Main Container */
+.container {
+    display: flex; /* Use flexbox for layout */
+    flex-direction: row; /* Places children in a row */
+    width: 100%;
+    max-width: 1600px; /* Allow for more width */
+    height: 100%; /* Take full height */
+    border-radius: 10px;
+    overflow: hidden; /* To keep content within rounded corners */
+}
+
+/* Left Panel Styles */
+.left-panel {
+    flex: 1; /* Allow it to take up the remaining space */
+    padding: 30px; /* Spacing around content */
+    background-color: rgba(30, 30, 30, 0.9); /* Slightly transparent background for contrast */
+}
+
+/* Header Styles */
+.header {
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 2.5em; /* Large title size for visibility */
+    color: #00ff7f; /* Neon green */
+    text-shadow: 0 0 15px #00ff7f;
+    text-align: center;
+}
+
+/* Description Styles */
+.description {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Textarea Styles */
+textarea {
+    width: 100%; /* Full width */
+    height: 180px; /* Set fixed height */
+    border: 2px solid #444;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 1em;
+    color: #ffffff;
+    background-color: #1e1e1e;
+    transition: border-color 0.3s ease;
+    margin-bottom: 20px;
+}
+
+/* Focus Styles for Textarea */
+textarea:focus {
+    outline: none;
+    border-color: #00ff7f;
+}
+
+/* Button Container Styles */
+.buttons {
+    display: flex; /* Change to flex for horizontal alignment */
+    gap: 10px; /* Space between buttons */
+    margin-top: 20px; /* Space above buttons */
+    justify-content: center; /* Center buttons horizontally */
+}
+
+/* Button Styles */
+.btn {
+    flex: 1; /* Allow buttons to flex and take equal space */
+    padding: 15px; /* Padding for button */
+    font-size: 1.1em;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    background: rgba(0, 255, 140, 0.3);
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+/* Button Hover Effect */
+.btn:hover {
+    background: rgba(0, 255, 140, 0.5);
+    box-shadow: 0 0 25px rgba(0, 255, 140, 0.6);
+}
+
+/* Right Panel Styles */
+.right-panel {
+    flex: 1; /* Allow it to take up the remaining space */
+    padding: 30px; /* Spacing around content */
+    background-color: rgba(30, 30, 30, 0.9); /* Matching background */
+    display: flex;
+    flex-direction: column; /* Align content vertically */
+}
+
+/* Output Container Styles */
+.output-container {
+    flex-grow: 1; /* Allow output to expand and fill space */
+    padding: 20px;
+    border: 2px solid #444;
+    border-radius: 10px;
+    background: rgba(0, 255, 140, 0.1);
+    box-shadow: 0 0 20px rgba(0, 255, 140, 0.2);
+    height: 100%; /* Allow it to fill available height */
+}
+
+/* Output Title Styles */
+.output-container h3 {
+    color: #00ff7f;
+    margin-bottom: 10px; /* Spacing below title */
+}
+
+/* Output Text Styles */
+#output {
+    color: #e0e0e0;
+    font-size: 1em;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .title {
+        font-size: 2em; /* Adjust title size */
+    }
+
+    .description {
+        font-size: 1em; /* Adjust description size */
+    }
+
+    textarea {
+        height: 150px; /* Adjust height for mobile */
+    }
+
+    .btn {
+        padding: 10px; /* Adjust padding for mobile */
+        flex: 1; /* Maintain equal width */
+    }
+
+    .output-container {
+        padding: 15px; /* Adjust padding */
+    }
+}
