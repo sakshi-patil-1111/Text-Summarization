@@ -11,37 +11,25 @@ import os
 import gdown
 import zipfile
 from transformers import BartTokenizer, BartForConditionalGeneration
+import evaluate
 
-DRIVE_FILE_ID = "https://drive.google.com/drive/folders/1Y4FuXQoGgpYjdeJsskrYI6xmetgYr1sB?usp=sharing"
+def ensure_model_downloaded(folder_path="./fine_tuned_model", folder_id="1Y4FuXQoGgpYjdeJsskrYI6xmetgYr1sB"):
+    if not os.path.exists(folder_path):
+        print("Model folder not found. Downloading from Google Drive...")
+        gdown.download_folder(id=folder_id, output=folder_path, quiet=False, use_cookies=False)
 
-
-
-def download_model_from_drive(file_id, output_dir="fine_tuned_model"):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
-        zip_path = "model.zip"
-        url = f"https://drive.google.com/uc?id={file_id}"
-        print("Downloading model from Google Drive...")
-        gdown.download(url, zip_path, quiet=False)
-        print("Extracting...")
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(output_dir)
-        os.remove(zip_path)
-    else:
-        return
-        
         
 
 app = Flask(__name__)
 
 # Load fine-tuned model & tokenizer
 tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
-model = BartForConditionalGeneration.from_pretrained("fine_tuned_model")
+ensure_model_downloaded()
+model = BartForConditionalGeneration.from_pretrained("./fine_tuned_model")
 
 # ----------------------- SUMMARIZATION FUNCTION -----------------------
 
 def generate_summary(text):
-    download_model_from_drive(DRIVE_FILE_ID)
     inputs = tokenizer([text], max_length=1024, return_tensors="pt", truncation=False)
     summary_ids = model.generate(
         inputs["input_ids"],
@@ -53,6 +41,24 @@ def generate_summary(text):
     )
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     # return len(text.split())
+
+rouge = evaluate.load("rouge")
+
+def evaluate_summary(predictions, references):
+    results = rouge.compute(predictions=predictions, references=references)
+
+    print("ROUGE Scores:")
+    for k, v in results.items():
+        print(f"{k}: {v:.4f}")
+
+    accurate = 0
+    for pred, ref in zip(predictions, references):
+        if any(word in ref for word in pred.split()):
+            accurate += 1
+
+    accuracy_percent = accurate / len(predictions) * 100
+    print(f"Sentence-level ROUGE-1 Overlap Accuracy: {accuracy_percent:.2f}%")
+
 
 # ----------------------- ROUTES -----------------------
 
