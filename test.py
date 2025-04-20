@@ -4,63 +4,97 @@ import torch
 import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
-import io
 import numpy as np
 import cv2
 import os
 import gdown
-import zipfile
-from transformers import BartTokenizer, BartForConditionalGeneration
+import csv
+from io import StringIO
 import evaluate
 
-def ensure_model_downloaded(folder_path="./fine_tuned_model", folder_id="1Y4FuXQoGgpYjdeJsskrYI6xmetgYr1sB"):
-    if not os.path.exists(folder_path):
-        print("Model folder not found. Downloading from Google Drive...")
-        gdown.download_folder(id=folder_id, output=folder_path, quiet=False, use_cookies=False)
-
-        
+# ------------------- Proxy Setup (if needed) -------------------
+os.environ["HTTP_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
+os.environ["HTTPS_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
 
 app = Flask(__name__)
 
-# Load fine-tuned model & tokenizer
-tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
-ensure_model_downloaded()
-model = BartForConditionalGeneration.from_pretrained("./fine_tuned_model")
+# ------------------- Download Model from Google Drive -------------------
+def ensure_model_downloaded(folder_path="./fine_tuned_model", folder_id="1Y4FuXQoGgpYjdeJsskrYI6xmetgYr1sB"):
+    if not os.path.exists(folder_path):
+        print("🔽 Downloading model...")
+        gdown.download_folder(id=folder_id, output=folder_path, quiet=False, use_cookies=False)
 
-# ----------------------- SUMMARIZATION FUNCTION -----------------------
+# ------------------- Load Model Safely -------------------
+print("📦 Loading model...")
+tokenizer = model = None
+try:
+    ensure_model_downloaded()
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
+    model = BartForConditionalGeneration.from_pretrained("./fine_tuned_model")
+    print("✅ Model loaded.")
+except Exception as e:
+    print(f"❌ Model load failed: {e}")
 
+# ------------------- Load ROUGE Metric -------------------
+try:
+    rouge = evaluate.load("rouge")
+    print("📊 ROUGE metric loaded.")
+except Exception as e:
+    print(f"❌ Failed to load ROUGE metric: {e}")
+    rouge = None
+
+# ------------------- Summary Generator -------------------
 def generate_summary(text):
-    inputs = tokenizer([text], max_length=1024, return_tensors="pt", truncation=False)
+    if not model or not tokenizer:
+        return "Model not loaded."
+    inputs = tokenizer([text], max_length=1024, return_tensors="pt", truncation=True)
     summary_ids = model.generate(
         inputs["input_ids"],
-        max_length=min(1024, len(text.split())),
-        min_length=min(500, len(text.split())//3),
+        max_length=150,
+        min_length=40,
         length_penalty=2.0,
         num_beams=4,
         early_stopping=True,
     )
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-    # return len(text.split())
 
-rouge = evaluate.load("rouge")
+# ------------------- PDF Text Extractor -------------------
+def extract_text_from_pdf(file):
+    content = ""
+    try:
+        doc = fitz.open(stream=file.read(), filetype="pdf")
+        for page in doc:
+            text = page.get_text("text")
+            if not text.strip():
+                blocks = page.get_text("dict")["blocks"]
+                for b in blocks:
+                    for line in b.get("lines", []):
+                        for span in line.get("spans", []):
+                            content += span["text"] + " "
+                    content += "\n"
+            else:
+                content += text + "\n"
+    except Exception as e:
+        print(f"📄 PDF extract error: {e}")
+    return content
 
-def evaluate_summary(predictions, references):
-    results = rouge.compute(predictions=predictions, references=references)
+# ------------------- Image Text Extractor (OCR) -------------------
+def extract_text_from_image(file):
+    try:
+        image = Image.open(file.stream).convert("RGB")
+        open_cv_image = np.array(image)[:, :, ::-1].copy()
+        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                     cv2.THRESH_BINARY, 15, 10)
+        gray = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_LINEAR)
+        processed_image = Image.fromarray(gray)
+        content = pytesseract.image_to_string(processed_image, lang="eng", config="--psm 6")
+        return content
+    except Exception as e:
+        print(f"🖼️ OCR error: {e}")
+        return ""
 
-    print("ROUGE Scores:")
-    for k, v in results.items():
-        print(f"{k}: {v:.4f}")
-
-    accurate = 0
-    for pred, ref in zip(predictions, references):
-        if any(word in ref for word in pred.split()):
-            accurate += 1
-
-    accuracy_percent = accurate / len(predictions) * 100
-    print(f"Sentence-level ROUGE-1 Overlap Accuracy: {accuracy_percent:.2f}%")
-
-
-# ----------------------- ROUTES -----------------------
+# ------------------- Routes -------------------
 
 @app.route("/")
 def home():
@@ -81,8 +115,8 @@ def upload():
     if not file:
         return jsonify({"summary": "No file uploaded."}), 400
 
-    content = ""
     filename = file.filename.lower()
+    content = ""
 
     if filename.endswith(".pdf"):
         content = extract_text_from_pdf(file)
@@ -97,53 +131,77 @@ def upload():
     summary = generate_summary(content)
     return jsonify({"summary": summary})
 
-# ----------------------- PDF TEXT EXTRACTION -----------------------
+@app.route("/evaluate-summary", methods=["POST"])
+def evaluate_summary_route():
+    file = request.files.get("file")
+    if not file:
+        return jsonify({"message": "No file uploaded."}), 400
 
-def extract_text_from_pdf(file):
-    content = ""
     try:
-        doc = fitz.open(stream=file.read(), filetype="pdf")
-        for page in doc:
-            # Try standard text
-            text = page.get_text("text")
-            if not text.strip():
-                # Fallback to block-based text
-                blocks = page.get_text("dict")["blocks"]
-                for b in blocks:
-                    for line in b.get("lines", []):
-                        for span in line.get("spans", []):
-                            content += span["text"] + " "
-                    content += "\n"
-            else:
-                content += text + "\n"
+        content = file.stream.read().decode("utf-8-sig")
+        csv_file = StringIO(content)
+        reader = csv.DictReader(csv_file)
+
+        documents = []
+        references = []
+
+        for row in reader:
+            doc = row.get("document", "").strip()
+            summary = row.get("summary", "").strip()
+            if doc and summary:
+                documents.append(doc)
+                references.append(summary)
+
+        if not documents or not references:
+            return jsonify({"message": "No valid rows found in CSV."}), 400
+
+        predictions = []
+
+        for doc in documents:
+            inputs = tokenizer([doc], max_length=1024, return_tensors="pt", truncation=True).to(model.device)
+            summary_ids = model.generate(
+                inputs["input_ids"],
+                max_length=256,
+                min_length=10,
+                length_penalty=2.0,
+                num_beams=4,
+                early_stopping=True,
+            )
+            predicted_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+            predictions.append(predicted_summary.strip())
+
+        # Compute ROUGE
+        results = rouge.compute(predictions=predictions, references=references)
+
+        formatted_results = {}
+        for k, v in results.items():
+            try:
+                formatted_results[k] = f"{v * 100:.2f}%"
+            except:
+                formatted_results[k] = "Error"
+
+        # More accurate sentence-level word overlap logic
+        accurate = 0
+        for pred, ref in zip(predictions, references):
+            pred_words = set(pred.lower().split())
+            ref_words = set(ref.lower().split())
+            if pred_words & ref_words:
+                accurate += 1
+
+        accuracy_percent = accurate / len(predictions) * 100
+        formatted_results["sentence_overlap_accuracy"] = f"{accuracy_percent:.2f}%"
+
+        return jsonify({
+            "scores": formatted_results,
+            
+        })
+
     except Exception as e:
-        print(f"PDF extraction error: {e}")
-    return content
+        print(f"❌ Evaluation error: {e}")
+        return jsonify({"message": "Error processing file."}), 500
 
-# ----------------------- OCR IMAGE PREPROCESSING -----------------------
 
-def extract_text_from_image(file):
-    try:
-        image = Image.open(file.stream).convert("RGB")
-        open_cv_image = np.array(image)
-        open_cv_image = open_cv_image[:, :, ::-1].copy()  # RGB to BGR
-
-        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
-            cv2.THRESH_BINARY, 15, 10
-        )
-        gray = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_LINEAR)
-
-        processed_image = Image.fromarray(gray)
-        content = pytesseract.image_to_string(processed_image, lang="eng", config="--psm 6")
-        return content
-    except Exception as e:
-        print(f"OCR error: {e}")
-        return ""
-
-# ----------------------- MAIN -----------------------
-
+# ------------------- Main -------------------
 if __name__ == "__main__":
+    print("🟢 Flask app starting...")
     app.run(debug=True)
-

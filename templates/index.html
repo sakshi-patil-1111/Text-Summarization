@@ -1,41 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Summarizer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Text Summarizer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="container">
+    <div class="left-panel">
+      <div class="header">
+        <h1 class="title">Text Summarizer</h1>
+      </div>
 
-    <div class="container">
-        <div class="left-panel">
-            <div class="header">
-                <h1 class="title">Text Summarizer</h1>
-            </div>
+      <p class="description">Type, paste, or upload a document/image to summarize.</p>
 
-            <p class="description">Type, paste, or upload a document/image to summarize.</p>
+      <textarea id="textInput" placeholder="Enter your text..."></textarea>
 
-            <textarea id="textInput" placeholder="Enter your text..."></textarea>
+      <div class="buttons">
+        <button class="btn sample" id="sampleText">Sample Text</button>
+        <button class="btn paste" id="pasteText">Paste Text</button>
+        <button class="btn upload" id="uploadDoc">Upload File</button>
+        <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="display: none;">
+        <button class="btn summarize" id="summarizeBtn">Summarize</button>
+      </div>
 
-            <div class="buttons">
-                <button class="btn sample" id="sampleText">Sample Text</button>
-                <button class="btn paste" id="pasteText">Paste Text</button>
-                <button class="btn upload" id="uploadDoc">Upload File</button>
-                <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="display: none;">
-                <button class="btn summarize" id="summarizeBtn">Summarize</button>
-            </div>
+      <br/>
+      <br/>
+
+      <p class="description">Evaluate a CSV of reference summaries vs predictions.</p>
+      <div class="buttons">
+        <button class="btn evaluate" id="evaluateBtn">Upload CSV for Evaluation</button>
+        <input type="file" id="csvInput" accept=".csv" style="display: none;">
+        <div class="output-container">
+          <h3>Accuracy:</h3>
+          <p id="evaluationOutput">Accuracy score appears here...</p>
         </div>
-
-        <div class="right-panel">
-            <div class="output-container">
-                <h3>Summary:</h3>
-                <p id="output">Output will appear here…</p>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div class="right-panel">
+      <div class="output-container">
+        <h3>Output:</h3>
+        <p id="output">Output will appear here…</p>
+      </div>
+    </div>
+  </div>
 
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

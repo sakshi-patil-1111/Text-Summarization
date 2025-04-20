@@ -66,7 +66,12 @@ textarea {
     transition: border-color 0.3s ease;
     margin-bottom: 20px;
 }
-
+/* .evaluation-output {
+    margin-top: 10px;
+    color: #333;
+    font-weight: bold;
+  }
+   */
 /* Focus Styles for Textarea */
 textarea:focus {
     outline: none;
