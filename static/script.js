@@ -60,7 +60,8 @@ function uploadFile(file, endpoint) {
     .then(res => res.json())
     .then(data => {
         if (endpoint === "/upload") {
-            document.getElementById("output").innerText = data.summary || "No summary generated.";
+            document.getElementById("textInput").value=data.text || "";
+            document.getElementById("output").innerText ="Text extracted. Click 'Summarize' to generate summary.";
         } else if (endpoint === "/evaluate-summary") {
             if (data.scores) {
                 const output = Object.entries(data.scores)

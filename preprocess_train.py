@@ -30,7 +30,7 @@ model = BartForConditionalGeneration.from_pretrained("facebook/bart-base")
 training_args = TrainingArguments(
     output_dir="./fine_tuned_model",
     evaluation_strategy="no",
-    save_strategy="epoch",   # <== Save model every epoch
+    save_strategy="epoch",   # Save model every epoch
     num_train_epochs=5,
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
@@ -52,4 +52,4 @@ trainer = Trainer(
 
 # Train and save
 trainer.train()
-trainer.save_model("fine_tuned_model")  # ✅ Saves full model to use later
+trainer.save_model("fine_tuned_model") 

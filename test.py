@@ -12,38 +12,33 @@ import csv
 from io import StringIO
 import evaluate
 
-# ------------------- Proxy Setup (if needed) -------------------
 os.environ["HTTP_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
 os.environ["HTTPS_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
 
 app = Flask(__name__)
 
-# ------------------- Download Model from Google Drive -------------------
 def ensure_model_downloaded(folder_path="./fine_tuned_model", folder_id="1Y4FuXQoGgpYjdeJsskrYI6xmetgYr1sB"):
     if not os.path.exists(folder_path):
-        print("🔽 Downloading model...")
+        print("Downloading model...")
         gdown.download_folder(id=folder_id, output=folder_path, quiet=False, use_cookies=False)
 
-# ------------------- Load Model Safely -------------------
-print("📦 Loading model...")
+print("Loading model...")
 tokenizer = model = None
 try:
     ensure_model_downloaded()
     tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
     model = BartForConditionalGeneration.from_pretrained("./fine_tuned_model")
-    print("✅ Model loaded.")
+    print("Model loaded.")
 except Exception as e:
-    print(f"❌ Model load failed: {e}")
+    print(f"Model load failed: {e}")
 
-# ------------------- Load ROUGE Metric -------------------
 try:
     rouge = evaluate.load("rouge")
-    print("📊 ROUGE metric loaded.")
+    print("ROUGE metric loaded.")
 except Exception as e:
-    print(f"❌ Failed to load ROUGE metric: {e}")
+    print(f" Failed to load ROUGE metric: {e}")
     rouge = None
 
-# ------------------- Summary Generator -------------------
 def generate_summary(text):
     if not model or not tokenizer:
         return "Model not loaded."
@@ -58,7 +53,6 @@ def generate_summary(text):
     )
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-# ------------------- PDF Text Extractor -------------------
 def extract_text_from_pdf(file):
     content = ""
     try:
@@ -75,10 +69,9 @@ def extract_text_from_pdf(file):
             else:
                 content += text + "\n"
     except Exception as e:
-        print(f"📄 PDF extract error: {e}")
+        print(f"PDF extract error: {e}")
     return content
 
-# ------------------- Image Text Extractor (OCR) -------------------
 def extract_text_from_image(file):
     try:
         image = Image.open(file.stream).convert("RGB")
@@ -91,10 +84,9 @@ def extract_text_from_image(file):
         content = pytesseract.image_to_string(processed_image, lang="eng", config="--psm 6")
         return content
     except Exception as e:
-        print(f"🖼️ OCR error: {e}")
+        print(f"OCR error: {e}")
         return ""
 
-# ------------------- Routes -------------------
 
 @app.route("/")
 def home():
@@ -113,7 +105,8 @@ def summarize():
 def upload():
     file = request.files.get("file")
     if not file:
-        return jsonify({"summary": "No file uploaded."}), 400
+        return jsonify({"text":"","error": "No file uploaded."}), 400
+
 
     filename = file.filename.lower()
     content = ""
@@ -123,13 +116,12 @@ def upload():
     elif filename.endswith((".png", ".jpg", ".jpeg")):
         content = extract_text_from_image(file)
     else:
-        return jsonify({"summary": "Unsupported file format."}), 400
+        return jsonify({"text":"","error": "Unsupported file format."}), 400
 
     if not content.strip():
-        return jsonify({"summary": "No readable content found."}), 400
+        return jsonify({"text": "", "error": "No readable content found."}), 400
 
-    summary = generate_summary(content)
-    return jsonify({"summary": summary})
+    return jsonify({"text": content})
 
 @app.route("/evaluate-summary", methods=["POST"])
 def evaluate_summary_route():
@@ -197,11 +189,10 @@ def evaluate_summary_route():
         })
 
     except Exception as e:
-        print(f"❌ Evaluation error: {e}")
+        print(f" Evaluation error: {e}")
         return jsonify({"message": "Error processing file."}), 500
 
 
-# ------------------- Main -------------------
 if __name__ == "__main__":
-    print("🟢 Flask app starting...")
+    print(" Flask app starting...")
     app.run(debug=True)
