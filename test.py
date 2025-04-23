@@ -12,8 +12,8 @@ import csv
 from io import StringIO
 import evaluate
 
-os.environ["HTTP_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
-os.environ["HTTPS_PROXY"] = "http://edcguest:edcguest@172.31.102.29:3128"
+os.environ["HTTP_PROXY"] = "http://edcguest:edcguest@172.31.100.14:3128"
+os.environ["HTTPS_PROXY"] = "http://edcguest:edcguest@172.31.100.14:3128"
 
 app = Flask(__name__)
 
